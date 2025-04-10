@@ -1,32 +1,106 @@
-//
-//  ContentView.swift
-//  RestMode
-//
-//  Created by whizzy on 10/04/25.
-//
-
 import SwiftUI
 import BackgroundTasks
+import UserNotifications
+
+class RestModeManager: ObservableObject {
+    @Published var isRestModeActive = false
+    @Published var timeRemaining = 20 * 60
+    @Published var nextBreakTime = Date().addingTimeInterval(3600)
+    
+    private var timer: Timer?
+    
+    init() {
+        setupNotifications()
+        scheduleNextBreak()
+    }
+    
+    private func setupNotifications() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            if granted {
+                print("Notification permission granted")
+            }
+        }
+    }
+    
+    func startBreak(duration: Int = 20 * 60) {
+        isRestModeActive = true
+        timeRemaining = duration
+        startTimer()
+    }
+    
+    func skipBreak() {
+        isRestModeActive = false
+        scheduleNextBreak()
+        timer?.invalidate()
+    }
+    
+    private func startTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if self.timeRemaining > 0 {
+                self.timeRemaining -= 1
+            } else {
+                self.skipBreak()
+            }
+        }
+    }
+    
+    private func scheduleNextBreak() {
+        nextBreakTime = Date().addingTimeInterval(3600)
+        scheduleNotification()
+        
+        // Schedule the next automatic break
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3600) { [weak self] in
+            self?.startBreak()
+        }
+    }
+    
+    private func scheduleNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Time for a Break"
+        content.body = "It's been an hour - time to rest your eyes!"
+        content.sound = .default
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false)
+        let request = UNNotificationRequest(identifier: "breakTime", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request)
+    }
+}
 
 struct ContentView: View {
-    @State private var timeRemaining = 20 * 60 // 20 minutes in seconds
-    @State private var isRestModeActive = false
-    @State private var nextBreakTime = Date().addingTimeInterval(3600) // 1 hour from now
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    let hourlyTimer = Timer.publish(every: 3600, on: .main, in: .common).autoconnect()
+    @StateObject private var manager = RestModeManager()
     
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
-            
-            VStack {
-                if isRestModeActive {
+            if manager.isRestModeActive {
+                RestModeView(manager: manager)
+                    .transition(.opacity)
+            } else {
+                NormalModeView(manager: manager)
+                    .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut, value: manager.isRestModeActive)
+    }
+}
+
+struct RestModeView: View {
+    @ObservedObject var manager: RestModeManager
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                Color.black.edgesIgnoringSafeArea(.all)
+                
+                VStack {
                     Text("Time to Rest")
                         .font(.largeTitle)
                         .foregroundColor(.white)
                         .padding()
                     
-                    Text(timeString(from: timeRemaining))
+                    Text(timeString(from: manager.timeRemaining))
                         .font(.system(size: 60, weight: .bold))
                         .foregroundColor(.white)
                         .padding()
@@ -37,7 +111,7 @@ struct ContentView: View {
                     
                     HStack(spacing: 20) {
                         Button(action: {
-                            timeRemaining = 5 * 60
+                            manager.startBreak(duration: 5 * 60)
                         }) {
                             Text("5 min")
                                 .foregroundColor(.white)
@@ -47,9 +121,9 @@ struct ContentView: View {
                         }
                         
                         Button(action: {
-                            timeRemaining = 10 * 60
+                            manager.startBreak(duration: 3600 * 60)
                         }) {
-                            Text("10 min")
+                            Text("3600 min")
                                 .foregroundColor(.white)
                                 .padding()
                                 .background(Color.blue)
@@ -57,8 +131,7 @@ struct ContentView: View {
                         }
                         
                         Button(action: {
-                            isRestModeActive = false
-                            nextBreakTime = Date().addingTimeInterval(3600)
+                            manager.skipBreak()
                         }) {
                             Text("Skip")
                                 .foregroundColor(.white)
@@ -68,84 +141,44 @@ struct ContentView: View {
                         }
                     }
                     .padding(.top)
-                } else {
-                    VStack(spacing: 20) {
-                        Text("Next break in:")
-                            .font(.title2)
-                            .foregroundColor(.white)
-                        
-                        Text(timeString(from: Int(nextBreakTime.timeIntervalSince(Date()))))
-                            .font(.system(size: 40, weight: .bold))
-                            .foregroundColor(.white)
-                        
-                        Button(action: {
-                            isRestModeActive = true
-                            timeRemaining = 20 * 60
-                        }) {
-                            Text("Start Break Now")
-                                .font(.title)
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(10)
-                        }
-                    }
                 }
             }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .statusBar(hidden: true)
         }
-        .onReceive(timer) { _ in
-            if isRestModeActive && timeRemaining > 0 {
-                timeRemaining -= 1
-            } else if timeRemaining == 0 {
-                isRestModeActive = false
-                nextBreakTime = Date().addingTimeInterval(3600)
+        .ignoresSafeArea()
+    }
+}
+
+struct NormalModeView: View {
+    @ObservedObject var manager: RestModeManager
+    
+    var body: some View {
+        VStack(spacing: 20) {
+            Text("Next break in:")
+                .font(.title2)
+            
+            Text(timeString(from: Int(manager.nextBreakTime.timeIntervalSince(Date()))))
+                .font(.system(size: 40, weight: .bold))
+            
+            Button(action: {
+                manager.startBreak()
+            }) {
+                Text("Start Break Now")
+                    .font(.title)
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(3600)
             }
         }
-        .onReceive(hourlyTimer) { _ in
-            if !isRestModeActive {
-                isRestModeActive = true
-                timeRemaining = 20 * 60
-            }
-        }
-        .onAppear {
-            setupBackgroundTasks()
-        }
     }
-    
-    func timeString(from seconds: Int) -> String {
-        let minutes = seconds / 60
-        let remainingSeconds = seconds % 60
-        return String(format: "%02d:%02d", minutes, remainingSeconds)
-    }
-    
-    func setupBackgroundTasks() {
-        BGTaskScheduler.shared.register(forTaskWithIdentifier: "com.restmode.refresh", using: nil) { task in
-            self.handleAppRefresh(task: task as! BGAppRefreshTask)
-        }
-        
-        scheduleBackgroundRefresh()
-    }
-    
-    func scheduleBackgroundRefresh() {
-        let request = BGAppRefreshTaskRequest(identifier: "com.restmode.refresh")
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 3600) // 1 hour
-        
-        do {
-            try BGTaskScheduler.shared.submit(request)
-        } catch {
-            print("Could not schedule app refresh: \(error)")
-        }
-    }
-    
-    func handleAppRefresh(task: BGAppRefreshTask) {
-        if !isRestModeActive {
-            isRestModeActive = true
-            timeRemaining = 20 * 60
-        }
-        
-        task.setTaskCompleted(success: true)
-        scheduleBackgroundRefresh()
-    }
+}
+
+func timeString(from seconds: Int) -> String {
+    let minutes = max(0, seconds) / 60
+    let remainingSeconds = max(0, seconds) % 60
+    return String(format: "%02d:%02d", minutes, remainingSeconds)
 }
 
 #Preview {
