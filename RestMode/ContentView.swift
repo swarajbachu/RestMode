@@ -1,17 +1,30 @@
 import SwiftUI
-import BackgroundTasks
 import UserNotifications
 
 class RestModeManager: ObservableObject {
-    @Published var isRestModeActive = false
-    @Published var timeRemaining = 20 * 60
-    @Published var nextBreakTime = Date().addingTimeInterval(3600)
+    @Published var isBreakActive = false
+    @Published var timeRemaining = 20 * 60  // 20 minutes in seconds
+    @Published var nextBreakTime: Date
+    @Published var postponeOptions = true
+    @Published var progress: Double = 0.0  // For progress indicator
     
     private var timer: Timer?
+    private var workTimer: Timer?
+    private let workDuration: TimeInterval = 3600 // 1 hour
     
     init() {
+        self.nextBreakTime = Date().addingTimeInterval(workDuration)
         setupNotifications()
-        scheduleNextBreak()
+        startWorkTimer()
+        
+        // Start tracking progress immediately
+        updateProgress()
+    }
+    
+    private func updateProgress() {
+        let totalTime = workDuration
+        let remainingTime = nextBreakTime.timeIntervalSince(Date())
+        progress = max(0, min(1, (totalTime - remainingTime) / totalTime))
     }
     
     private func setupNotifications() {
@@ -22,19 +35,47 @@ class RestModeManager: ObservableObject {
         }
     }
     
-    func startBreak(duration: Int = 20 * 60) {
-        isRestModeActive = true
-        timeRemaining = duration
-        startTimer()
+    func startBreak() {
+        DispatchQueue.main.async {
+            self.isBreakActive = true
+            self.timeRemaining = 20 * 60
+            self.postponeOptions = true
+            self.startBreakTimer()
+            self.workTimer?.invalidate()
+            
+            // Show the break window
+            if let window = NSApplication.shared.windows.first(where: { $0.title == "Break Time" }) {
+                window.makeKeyAndOrderFront(nil)
+                window.level = .screenSaver
+                window.collectionBehavior = [.canJoinAllSpaces, .fullScreenPrimary]
+                window.toggleFullScreen(nil)
+            }
+        }
+    }
+    
+    func postponeBreak(minutes: Int) {
+        DispatchQueue.main.async {
+            self.isBreakActive = false
+            self.nextBreakTime = Date().addingTimeInterval(TimeInterval(minutes * 60))
+            
+            // Close the break window
+            if let window = NSApplication.shared.windows.first(where: { $0.title == "Break Time" }) {
+                if window.styleMask.contains(.fullScreen) {
+                    window.toggleFullScreen(nil)
+                }
+                window.close()
+            }
+            
+            self.startWorkTimer()
+            self.scheduleNotification()
+        }
     }
     
     func skipBreak() {
-        isRestModeActive = false
-        scheduleNextBreak()
-        timer?.invalidate()
+        postponeBreak(minutes: 60) // Skip to next hour
     }
     
-    private func startTimer() {
+    private func startBreakTimer() {
         timer?.invalidate()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self = self else { return }
@@ -44,25 +85,36 @@ class RestModeManager: ObservableObject {
                 self.skipBreak()
             }
         }
+        
+        RunLoop.main.add(timer!, forMode: .common)
+    }
+    
+    private func startWorkTimer() {
+        workTimer?.invalidate()
+        workTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.updateProgress()
+            if Date() >= self.nextBreakTime {
+                self.startBreak()
+            }
+        }
+        
+        RunLoop.main.add(workTimer!, forMode: .common)
     }
     
     private func scheduleNextBreak() {
-        nextBreakTime = Date().addingTimeInterval(3600)
+        nextBreakTime = Date().addingTimeInterval(workDuration)
         scheduleNotification()
-        
-        // Schedule the next automatic break
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3600) { [weak self] in
-            self?.startBreak()
-        }
     }
     
     private func scheduleNotification() {
         let content = UNMutableNotificationContent()
-        content.title = "Time for a Break"
-        content.body = "It's been an hour - time to rest your eyes!"
+        content.title = "Time for an Eye Break"
+        content.body = "Taking regular breaks helps reduce eye strain and maintain productivity."
         content.sound = .default
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 3600, repeats: false)
+        let timeInterval = nextBreakTime.timeIntervalSince(Date())
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
         let request = UNNotificationRequest(identifier: "breakTime", content: content, trigger: trigger)
         
         UNUserNotificationCenter.current().add(request)
@@ -74,7 +126,7 @@ struct ContentView: View {
     
     var body: some View {
         ZStack {
-            if manager.isRestModeActive {
+            if manager.isBreakActive {
                 RestModeView(manager: manager)
                     .transition(.opacity)
             } else {
@@ -82,7 +134,7 @@ struct ContentView: View {
                     .transition(.opacity)
             }
         }
-        .animation(.easeInOut, value: manager.isRestModeActive)
+        .animation(.easeInOut, value: manager.isBreakActive)
     }
 }
 
@@ -111,19 +163,9 @@ struct RestModeView: View {
                     
                     HStack(spacing: 20) {
                         Button(action: {
-                            manager.startBreak(duration: 5 * 60)
+                            manager.startBreak()
                         }) {
-                            Text("5 min")
-                                .foregroundColor(.white)
-                                .padding()
-                                .background(Color.blue)
-                                .cornerRadius(8)
-                        }
-                        
-                        Button(action: {
-                            manager.startBreak(duration: 3600 * 60)
-                        }) {
-                            Text("3600 min")
+                            Text("Take a Break")
                                 .foregroundColor(.white)
                                 .padding()
                                 .background(Color.blue)
@@ -144,7 +186,6 @@ struct RestModeView: View {
                 }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
-            .statusBar(hidden: true)
         }
         .ignoresSafeArea()
     }
