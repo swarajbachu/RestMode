@@ -21,10 +21,12 @@ struct RestModeApp: App {
         }
         .menuBarExtraStyle(.window)
         // Monitor isBreakActive to open/close the window
-        .onChange(of: manager.isBreakActive) { isActive in
-            if isActive {
+        .onChange(of: manager.isBreakActive) { oldValue, newValue in
+            if newValue {
                 openWindow(id: "break-window")
             } else {
+                // Check if the window exists before trying to dismiss
+                // This avoids potential issues if the window was closed manually
                 dismissWindow(id: "break-window")
             }
         }
