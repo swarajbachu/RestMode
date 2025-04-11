@@ -5,29 +5,27 @@ struct BreakView: View {
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.dismiss) var dismiss
     
+    // Receive animation state
+    let isPresented: Bool
+    
     var body: some View {
-        ZStack {
-            // Background gradient
-            LinearGradient(
-                gradient: Gradient(colors: [
-                    Color.blue.opacity(colorScheme == .dark ? 0.3 : 0.1),
-                    Color(colorScheme == .dark ? .black : .white)
-                ]),
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .edgesIgnoringSafeArea(.all)
+        // Remove internal ZStack and background, rely on container
+        VStack(spacing: 40) {
+            TimerSection()
+                // Animate timer section
+                .offset(y: isPresented ? 0 : 20)
+                .opacity(isPresented ? 1 : 0)
+                .animation(.easeOut(duration: 0.3).delay(0.1), value: isPresented)
             
-            // Content
-            VStack(spacing: 40) {
-                TimerSection()
-                
-                if manager.postponeOptions {
-                    PostponeOptions()
-                }
+            if manager.postponeOptions {
+                PostponeOptions()
+                    // Animate postpone options (slightly delayed)
+                    .offset(y: isPresented ? 0 : 20)
+                    .opacity(isPresented ? 1 : 0)
+                    .animation(.easeOut(duration: 0.3).delay(0.15), value: isPresented)
             }
-            .padding(40)
         }
+        .padding(40)
     }
 }
 
