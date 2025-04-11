@@ -26,9 +26,10 @@ private struct ProgressSection: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
-                Image(systemName: "eyes")
-                    .font(.title2)
-                    .foregroundStyle(.blue)
+                Image("Cloud")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 24, height: 24)
                 Text("Rest Time")
                     .font(.headline)
                 Spacer()

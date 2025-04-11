@@ -13,9 +13,19 @@ struct RestModeApp: App {
     @StateObject private var overlayCoordinator = OverlayWindowCoordinator()
     
     var body: some Scene {
-        MenuBarExtra("RestMode", systemImage: "eyes") {
+        MenuBarExtra {
             MenuBarView()
                 .environmentObject(manager)
+        } label: {
+            // This uses your custom Cloud image as a template image
+            let image: NSImage = {
+                    let ratio = $0.size.height / $0.size.width
+                    $0.size.height = 18
+                    $0.size.width = 18 / ratio
+                    return $0
+                }(NSImage(named: "MenuBarIcon")!)
+                
+                Image(nsImage: image)
         }
         .menuBarExtraStyle(.window)
         .onChange(of: manager.isBreakActive) { oldValue, newValue in
@@ -28,4 +38,3 @@ struct RestModeApp: App {
         }
     }
 }
-
