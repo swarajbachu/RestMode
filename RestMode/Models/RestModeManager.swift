@@ -5,7 +5,7 @@ class RestModeManager: ObservableObject {
 
     // MARK: - Published Properties
     @Published var isBreakActive = false
-    @Published var timeRemaining = 20 * 60  // 20 minutes in seconds
+    @Published var timeRemaining = 20  // 20 seconds break
     @Published var nextBreakTime: Date
     @Published var postponeOptions = true
     @Published var progress: Double = 0.0
@@ -43,7 +43,7 @@ class RestModeManager: ObservableObject {
             // Update state
             DispatchQueue.main.async {
                 self.isBreakActive = true
-                self.timeRemaining = 20 * 60
+                self.timeRemaining = 20 // Reset to 20 seconds
                 self.postponeOptions = true
                 self.startBreakTimer()
             }

@@ -63,7 +63,7 @@ private struct TimerCircle: View {
                 .frame(width: 200, height: 200)
             
             Circle()
-                .trim(from: 0, to: CGFloat(manager.timeRemaining) / (20 * 60))
+                .trim(from: 0, to: CGFloat(manager.timeRemaining) / 20.0)
                 .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round))
                 .frame(width: 200, height: 200)
                 .rotationEffect(.degrees(-90))
@@ -146,4 +146,10 @@ private struct PostponeButton: View {
         }
         .buttonStyle(.plain)
     }
+}
+
+// Helper function to format time (ensure it handles seconds correctly)
+private func timeStringSecs(from seconds: Int) -> String {
+    let seconds = max(0, seconds)
+    return String(format: "%02d", seconds)
 } 
