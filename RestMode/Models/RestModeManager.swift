@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 
 class RestModeManager: ObservableObject {
+
     // MARK: - Published Properties
     @Published var isBreakActive = false
     @Published var timeRemaining = 20 * 60  // 20 minutes in seconds
@@ -45,11 +46,6 @@ class RestModeManager: ObservableObject {
                 self.timeRemaining = 20 * 60
                 self.postponeOptions = true
                 self.startBreakTimer()
-                
-                // Open break window using URL scheme
-                if let url = URL(string: "restmode://break") {
-                    NSWorkspace.shared.open(url)
-                }
             }
         }
     }

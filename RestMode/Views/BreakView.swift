@@ -83,7 +83,6 @@ private struct TimerCircle: View {
 
 private struct PostponeOptions: View {
     @EnvironmentObject var manager: RestModeManager
-    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         VStack(spacing: 16) {
@@ -98,7 +97,6 @@ private struct PostponeOptions: View {
                     color: .orange
                 ) {
                     manager.postponeBreak(minutes: 5)
-                    dismiss()
                 }
                 
                 PostponeButton(
@@ -107,7 +105,6 @@ private struct PostponeOptions: View {
                     color: .blue
                 ) {
                     manager.postponeBreak(minutes: 10)
-                    dismiss()
                 }
                 
                 PostponeButton(
@@ -116,7 +113,6 @@ private struct PostponeOptions: View {
                     color: .red
                 ) {
                     manager.skipBreak()
-                    dismiss()
                 }
             }
         }
