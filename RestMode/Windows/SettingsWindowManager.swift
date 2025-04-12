@@ -11,13 +11,16 @@ class SettingsWindowManager: ObservableObject {
         }
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
-            styleMask: [.titled, .closable, .miniaturizable, .resizable],
+            contentRect: NSRect(x: 0, y: 0, width: 900, height: 680),
+            styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
         
-        window.title = "Settings"
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.backgroundColor = .clear
+        window.isMovableByWindowBackground = true
         window.center()
         window.setFrameAutosaveName("Settings")
         window.contentView = NSHostingView(rootView: SettingsView()

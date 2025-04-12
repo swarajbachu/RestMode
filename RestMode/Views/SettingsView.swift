@@ -45,80 +45,65 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: SettingsManager
     
     var body: some View {
-        NavigationSplitView {
+        HSplitView {
             List(selection: $selectedTab) {
+                Section("Settings") {
+                    Label(Tabs.general.title, systemImage: Tabs.general.icon)
+                        .tag(Tabs.general)
+                }
+                
                 Section("Productivity & Care") {
-                    NavigationLink(value: Tabs.workMode) {
-                        Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon)
-                    }
-                    NavigationLink(value: Tabs.restMode) {
-                        Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon)
-                    }
-                    NavigationLink(value: Tabs.wellnessReminders) {
-                        Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon)
-                    }
+                    Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon)
+                        .tag(Tabs.workMode)
+                    Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon)
+                        .tag(Tabs.restMode)
+                    Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon)
+                        .tag(Tabs.wellnessReminders)
                 }
                 
                 Section("Personalize") {
-                    NavigationLink(value: Tabs.customization) {
-                        Label(Tabs.customization.title, systemImage: Tabs.customization.icon)
-                    }
-                    NavigationLink(value: Tabs.automation) {
-                        Label(Tabs.automation.title, systemImage: Tabs.automation.icon)
-                    }
-                    NavigationLink(value: Tabs.notifications) {
-                        Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon)
-                    }
-                    NavigationLink(value: Tabs.keyboardShortcuts) {
-                        Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon)
-                    }
+                    Label(Tabs.customization.title, systemImage: Tabs.customization.icon)
+                        .tag(Tabs.customization)
+                    Label(Tabs.automation.title, systemImage: Tabs.automation.icon)
+                        .tag(Tabs.automation)
+                    Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon)
+                        .tag(Tabs.notifications)
+                    Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon)
+                        .tag(Tabs.keyboardShortcuts)
                 }
                 
                 Section("ReduceTime") {
-                    NavigationLink(value: Tabs.about) {
-                        Label(Tabs.about.title, systemImage: Tabs.about.icon)
-                    }
+                    Label(Tabs.about.title, systemImage: Tabs.about.icon)
+                        .tag(Tabs.about)
                 }
             }
-            .navigationTitle("Settings")
-        } detail: {
-            TabView(selection: $selectedTab) {
-                GeneralSettingsView()
-                    .tag(Tabs.general)
-                    .tabItem { Label(Tabs.general.title, systemImage: Tabs.general.icon) }
-                
-                WorkModeSettingsView()
-                    .tag(Tabs.workMode)
-                    .tabItem { Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon) }
-                
-                RestModeSettingsView()
-                    .tag(Tabs.restMode)
-                    .tabItem { Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon) }
-                
-                WellnessRemindersView()
-                    .tag(Tabs.wellnessReminders)
-                    .tabItem { Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon) }
-                
-                CustomizationView()
-                    .tag(Tabs.customization)
-                    .tabItem { Label(Tabs.customization.title, systemImage: Tabs.customization.icon) }
-                
-                AutomationView()
-                    .tag(Tabs.automation)
-                    .tabItem { Label(Tabs.automation.title, systemImage: Tabs.automation.icon) }
-                
-                NotificationsView()
-                    .tag(Tabs.notifications)
-                    .tabItem { Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon) }
-                
-                KeyboardShortcutsView()
-                    .tag(Tabs.keyboardShortcuts)
-                    .tabItem { Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon) }
-                
-                AboutView()
-                    .tag(Tabs.about)
-                    .tabItem { Label(Tabs.about.title, systemImage: Tabs.about.icon) }
+            .listStyle(.sidebar)
+            .frame(minWidth: 180, maxWidth: 220)
+            
+            Group {
+                switch selectedTab {
+                case .general:
+                    GeneralSettingsView()
+                case .workMode:
+                    WorkModeSettingsView()
+                case .restMode:
+                    RestModeSettingsView()
+                case .wellnessReminders:
+                    WellnessRemindersView()
+                case .customization:
+                    CustomizationView()
+                case .automation:
+                    AutomationView()
+                case .notifications:
+                    NotificationsView()
+                case .keyboardShortcuts:
+                    KeyboardShortcutsView()
+                case .about:
+                    AboutView()
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding()
         }
     }
 }
@@ -146,7 +131,6 @@ struct GeneralSettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .padding()
     }
 }
 
