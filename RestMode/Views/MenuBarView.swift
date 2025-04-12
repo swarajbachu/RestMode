@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var manager: RestModeManager
+    @EnvironmentObject var settings: SettingsManager
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -12,6 +13,11 @@ struct MenuBarView: View {
                 .padding(.horizontal, 12)
             
             ActionButtons()
+            
+            Divider()
+                .padding(.horizontal, 12)
+            
+            SettingsButton()
             
             Divider()
                 .padding(.horizontal, 12)
@@ -93,7 +99,8 @@ private struct ActionButtons: View {
                 title: "Start Break Now",
                 icon: "play.circle.fill",
                 color: .blue,
-                isDestructive: false
+                isDestructive: false,
+                shortcut: "⌘B"
             ) {
                 manager.startBreak()
             }
@@ -102,7 +109,8 @@ private struct ActionButtons: View {
                 title: "Postpone 5 Minutes",
                 icon: "clock.arrow.circlepath",
                 color: .primary,
-                isDestructive: false
+                isDestructive: false,
+                shortcut: "⌘P"
             ) {
                 manager.postponeBreak(minutes: 5)
             }
@@ -111,10 +119,27 @@ private struct ActionButtons: View {
                 title: "Skip to Next Hour",
                 icon: "forward.end.fill",
                 color: .primary,
-                isDestructive: true
+                isDestructive: true,
+                shortcut: "⇧⌘S"
             ) {
                 manager.skipBreak()
             }
+        }
+    }
+}
+
+private struct SettingsButton: View {
+    @StateObject private var settingsWindowManager = SettingsWindowManager()
+    
+    var body: some View {
+        MenuButton(
+            title: "Settings...",
+            icon: "gearshape",
+            color: .primary,
+            isDestructive: false,
+            shortcut: "⌘,"
+        ) {
+            settingsWindowManager.showSettingsWindow()
         }
     }
 }
@@ -127,7 +152,8 @@ private struct QuitButton: View {
             title: "Quit RestMode",
             icon: "power",
             color: .primary,
-            isDestructive: true
+            isDestructive: true,
+            shortcut: "⌘Q"
         ) {
             manager.cleanup()
             NSApplication.shared.terminate(nil)
@@ -140,7 +166,24 @@ struct MenuButton: View {
     let icon: String
     let color: Color
     let isDestructive: Bool
+    let shortcut: String?
     let action: () -> Void
+    
+    init(
+        title: String,
+        icon: String,
+        color: Color,
+        isDestructive: Bool,
+        shortcut: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.isDestructive = isDestructive
+        self.shortcut = shortcut
+        self.action = action
+    }
     
     var body: some View {
         Button(action: action) {
@@ -152,6 +195,11 @@ struct MenuButton: View {
                     .font(.system(size: 13))
                     .foregroundStyle(isDestructive ? Color.red : .primary)
                 Spacer()
+                if let shortcut {
+                    Text(shortcut)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
             }
             .contentShape(Rectangle())
             .padding(.horizontal, 16)

@@ -1,11 +1,12 @@
 import SwiftUI
 import UserNotifications
+import Combine
 
 class RestModeManager: ObservableObject {
 
     // MARK: - Published Properties
     @Published var isBreakActive = false
-    @Published var timeRemaining = 20  // 20 seconds break
+    @Published var timeRemaining = 20
     @Published var nextBreakTime: Date
     @Published var postponeOptions = true
     @Published var progress: Double = 0.0
@@ -13,17 +14,161 @@ class RestModeManager: ObservableObject {
     // MARK: - Private Properties
     private var timer: Timer?
     private var workTimer: Timer?
-    private let workDuration: TimeInterval = 3600 // 1 hour
     private var isCleaningUp = false
     private let serialQueue = DispatchQueue(label: "com.restmode.serial", qos: .userInteractive)
+    private let settings: SettingsManager
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
-    init() {
+    init(settings: SettingsManager = .shared) {
         print("RestModeManager: Initializing")
-        self.nextBreakTime = Date().addingTimeInterval(workDuration)
+        self.settings = settings
+        self.nextBreakTime = Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60))
+        
         setupNotifications()
-        startWorkTimer()
+        if settings.startTimerOnLaunch {
+            startWorkTimer()
+        }
         updateProgress()
+        
+        // Observe settings changes
+        observeSettings()
+    }
+    
+    // MARK: - Settings Observation
+    private func observeSettings() {
+        // Observe work mode duration changes
+        settings.$workModeDuration
+            .sink { [weak self] newDuration in
+                guard let self = self else { return }
+                if !self.isBreakActive {
+                    self.resetWorkTimer(withDuration: newDuration)
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Observe short break duration changes
+        settings.$shortBreakDuration
+            .sink { [weak self] newDuration in
+                guard let self = self, self.isBreakActive else { return }
+                // Only update if we're in a short break
+                if self.timeRemaining <= self.settings.shortBreakDuration {
+                    self.timeRemaining = newDuration
+                }
+            }
+            .store(in: &cancellables)
+        
+        // Observe long break duration changes
+        settings.$longBreakDuration
+            .sink { [weak self] newDuration in
+                guard let self = self, self.isBreakActive else { return }
+                // Only update if we're in a long break
+                if self.timeRemaining > self.settings.shortBreakDuration {
+                    self.timeRemaining = newDuration
+                }
+            }
+            .store(in: &cancellables)
+            
+        // Observe hide skip button setting
+        settings.$hideSkipButton
+            .sink { [weak self] hideSkip in
+                guard let self = self else { return }
+                self.postponeOptions = !hideSkip
+            }
+            .store(in: &cancellables)
+    }
+    
+    private func resetWorkTimer(withDuration duration: Int) {
+        stopTimers()
+        nextBreakTime = Date().addingTimeInterval(TimeInterval(duration * 60))
+        updateProgress()
+        startWorkTimer()
+        scheduleNotification()
+    }
+    
+    // MARK: - Timer Management
+    private func startWorkTimer() {
+        print("RestModeManager: Starting work timer")
+        workTimer?.invalidate()
+        workTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.updateProgress()
+            
+            // Check for idle time if enabled
+            if self.settings.pauseOnIdle {
+                let idleTime = NSEvent.mouseLocation.x // TODO: Implement proper idle time detection
+                if idleTime > Double(self.settings.pauseAfterMinutes * 60) {
+                    self.pauseTimers()
+                    return
+                }
+            }
+            
+            if self.settings.resetOnIdle {
+                let idleTime = NSEvent.mouseLocation.x // TODO: Implement proper idle time detection
+                if idleTime > Double(self.settings.resetAfterMinutes * 60) {
+                    self.resetTimers()
+                    return
+                }
+            }
+            
+            if Date() >= self.nextBreakTime {
+                self.startBreak()
+            }
+        }
+        
+        if let workTimer = workTimer {
+            RunLoop.main.add(workTimer, forMode: .common)
+        }
+    }
+    
+    private func startBreakTimer() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.isBreakActive = true
+            self.timeRemaining = self.settings.shortBreakDuration
+            self.postponeOptions = !self.settings.hideSkipButton
+            
+            self.timer?.invalidate()
+            self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+                guard let self = self else { return }
+                if self.timeRemaining > 0 {
+                    self.timeRemaining -= 1
+                } else {
+                    if self.settings.longBreaksEnabled && 
+                       self.progress >= Double(self.settings.longBreakInterval) {
+                        self.startLongBreak()
+                    } else {
+                        self.skipBreak()
+                    }
+                }
+            }
+            
+            if let timer = self.timer {
+                RunLoop.main.add(timer, forMode: .common)
+            }
+        }
+    }
+    
+    private func startCountdownTimer() {
+        timer?.invalidate()
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            if self.timeRemaining > 0 {
+                self.timeRemaining -= 1
+            } else {
+                self.startBreakTimer()
+            }
+        }
+        
+        if let timer = timer {
+            RunLoop.main.add(timer, forMode: .common)
+        }
+    }
+    
+    private func updateProgress() {
+        let totalTime = TimeInterval(settings.workModeDuration * 60)
+        let remainingTime = nextBreakTime.timeIntervalSince(Date())
+        progress = max(0, min(1, (totalTime - remainingTime) / totalTime))
     }
     
     // MARK: - Public Methods
@@ -40,13 +185,17 @@ class RestModeManager: ObservableObject {
             // Stop existing timers
             self.stopTimers()
             
-            // Update state
-            DispatchQueue.main.async {
-                self.isBreakActive = true
-                self.timeRemaining = 20 // Reset to 20 seconds
-                self.postponeOptions = true
-                self.startBreakTimer()
+            // Show countdown if enabled
+            if self.settings.showCountdown {
+                DispatchQueue.main.async {
+                    self.timeRemaining = self.settings.countdownDuration
+                    self.startCountdownTimer()
+                }
+                return
             }
+            
+            // Start break immediately if countdown disabled
+            self.startBreakTimer()
         }
     }
     
@@ -76,7 +225,61 @@ class RestModeManager: ObservableObject {
     
     func skipBreak() {
         print("RestModeManager: Skipping break")
-        postponeBreak(minutes: 60)
+        postponeBreak(minutes: settings.workModeDuration)
+    }
+    
+    private func startLongBreak() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.timeRemaining = self.settings.longBreakDuration
+            self.startBreakTimer()
+        }
+    }
+    
+    private func pauseTimers() {
+        timer?.invalidate()
+        timer = nil
+        workTimer?.invalidate()
+        workTimer = nil
+    }
+    
+    private func resetTimers() {
+        pauseTimers()
+        nextBreakTime = Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60))
+        startWorkTimer()
+    }
+    
+    private func stopTimers() {
+        timer?.invalidate()
+        timer = nil
+        workTimer?.invalidate()
+        workTimer = nil
+    }
+    
+    private func setupNotifications() {
+        print("RestModeManager: Setting up notifications")
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
+            if granted {
+                print("RestModeManager: Notification permission granted")
+                self?.scheduleNotification()
+            }
+        }
+    }
+    
+    private func scheduleNotification() {
+        print("RestModeManager: Scheduling notification")
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        let content = UNMutableNotificationContent()
+        content.title = "Time for an Eye Break"
+        content.body = "Taking regular breaks helps reduce eye strain and maintain productivity."
+        content.sound = .default
+        
+        let timeInterval = nextBreakTime.timeIntervalSince(Date())
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
+        let request = UNNotificationRequest(identifier: "breakTime", content: content, trigger: trigger)
+        
+        UNUserNotificationCenter.current().add(request)
     }
     
     func cleanup() {
@@ -94,83 +297,6 @@ class RestModeManager: ObservableObject {
         }
         
         print("RestModeManager: Cleanup completed")
-    }
-    
-    // MARK: - Private Methods
-    private func updateProgress() {
-        let totalTime = workDuration
-        let remainingTime = nextBreakTime.timeIntervalSince(Date())
-        progress = max(0, min(1, (totalTime - remainingTime) / totalTime))
-    }
-    
-    private func setupNotifications() {
-        print("RestModeManager: Setting up notifications")
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { [weak self] granted, _ in
-            if granted {
-                print("RestModeManager: Notification permission granted")
-                self?.scheduleNotification()
-            }
-        }
-    }
-    
-    private func startBreakTimer() {
-        print("RestModeManager: Starting break timer")
-        timer?.invalidate()
-        timer = nil
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            if self.timeRemaining > 0 {
-                self.timeRemaining -= 1
-            } else {
-                self.skipBreak()
-            }
-        }
-        
-        if let timer = timer {
-            RunLoop.main.add(timer, forMode: .common)
-        }
-    }
-    
-    private func startWorkTimer() {
-        print("RestModeManager: Starting work timer")
-        workTimer?.invalidate()
-        workTimer = nil
-        
-        workTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.updateProgress()
-            if Date() >= self.nextBreakTime {
-                self.startBreak()
-            }
-        }
-        
-        if let workTimer = workTimer {
-            RunLoop.main.add(workTimer, forMode: .common)
-        }
-    }
-    
-    private func stopTimers() {
-        timer?.invalidate()
-        timer = nil
-        workTimer?.invalidate()
-        workTimer = nil
-    }
-    
-    private func scheduleNotification() {
-        print("RestModeManager: Scheduling notification")
-        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
-        
-        let content = UNMutableNotificationContent()
-        content.title = "Time for an Eye Break"
-        content.body = "Taking regular breaks helps reduce eye strain and maintain productivity."
-        content.sound = .default
-        
-        let timeInterval = nextBreakTime.timeIntervalSince(Date())
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
-        let request = UNNotificationRequest(identifier: "breakTime", content: content, trigger: trigger)
-        
-        UNUserNotificationCenter.current().add(request)
     }
     
     deinit {
