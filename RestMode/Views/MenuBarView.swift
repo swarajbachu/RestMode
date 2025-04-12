@@ -3,211 +3,105 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var manager: RestModeManager
     @EnvironmentObject var settings: SettingsManager
-    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            ProgressSection()
-            
-            Divider()
-                .padding(.horizontal, 12)
-            
-            ActionButtons()
-            
-            Divider()
-                .padding(.horizontal, 12)
-            
-            SettingsButton()
-            
-            Divider()
-                .padding(.horizontal, 12)
-            
-            QuitButton()
-        }
-        .frame(width: 260)
-        .padding(.vertical, 12)
-    }
-}
-
-private struct ProgressSection: View {
-    @EnvironmentObject var manager: RestModeManager
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 8) {
-                Image("Cloud")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 20, height: 20)
-                Text("Rest Time")
-                    .font(.system(size: 14, weight: .semibold))
-                Spacer()
-            }
-            .padding(.horizontal, 16)
-            
-            VStack(spacing: 8) {
-                ProgressBar(progress: manager.progress)
-                
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: { manager.startBreak() }) {
                 HStack {
-                    Text(timeString(from: Int(manager.nextBreakTime.timeIntervalSince(Date()))))
-                        .font(.system(.body, design: .rounded, weight: .medium))
-                        .monospacedDigit()
-                    
+                    Text("Start Break Now")
                     Spacer()
-                    
-                    Text("until next break")
-                        .font(.system(size: 12))
+                    Text("⌘B")
                         .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
             }
-            .padding(.horizontal, 16)
-        }
-    }
-}
-
-private struct ProgressBar: View {
-    let progress: Double
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.secondary.opacity(0.2))
-                    .frame(height: 4)
-                
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color.blue.opacity(0.7)],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: geometry.size.width * progress, height: 4)
-            }
-        }
-        .frame(height: 4)
-    }
-}
-
-private struct ActionButtons: View {
-    @EnvironmentObject var manager: RestModeManager
-    
-    var body: some View {
-        VStack(spacing: 2) {
-            MenuButton(
-                title: "Start Break Now",
-                icon: "play.circle.fill",
-                color: .blue,
-                isDestructive: false,
-                shortcut: "⌘B"
-            ) {
-                manager.startBreak()
-            }
+            .keyboardShortcut("b", modifiers: .command)
             
-            MenuButton(
-                title: "Postpone 5 Minutes",
-                icon: "clock.arrow.circlepath",
-                color: .primary,
-                isDestructive: false,
-                shortcut: "⌘P"
-            ) {
-                manager.postponeBreak(minutes: 5)
-            }
-            
-            MenuButton(
-                title: "Skip to Next Hour",
-                icon: "forward.end.fill",
-                color: .primary,
-                isDestructive: true,
-                shortcut: "⇧⌘S"
-            ) {
-                manager.skipBreak()
-            }
-        }
-    }
-}
-
-private struct SettingsButton: View {
-    @StateObject private var settingsWindowManager = SettingsWindowManager()
-    
-    var body: some View {
-        MenuButton(
-            title: "Settings...",
-            icon: "gearshape",
-            color: .primary,
-            isDestructive: false,
-            shortcut: "⌘,"
-        ) {
-            settingsWindowManager.showSettingsWindow()
-        }
-    }
-}
-
-private struct QuitButton: View {
-    @EnvironmentObject var manager: RestModeManager
-    
-    var body: some View {
-        MenuButton(
-            title: "Quit RestMode",
-            icon: "power",
-            color: .primary,
-            isDestructive: true,
-            shortcut: "⌘Q"
-        ) {
-            manager.cleanup()
-            NSApplication.shared.terminate(nil)
-        }
-    }
-}
-
-struct MenuButton: View {
-    let title: String
-    let icon: String
-    let color: Color
-    let isDestructive: Bool
-    let shortcut: String?
-    let action: () -> Void
-    
-    init(
-        title: String,
-        icon: String,
-        color: Color,
-        isDestructive: Bool,
-        shortcut: String? = nil,
-        action: @escaping () -> Void
-    ) {
-        self.title = title
-        self.icon = icon
-        self.color = color
-        self.isDestructive = isDestructive
-        self.shortcut = shortcut
-        self.action = action
-    }
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 12))
-                    .foregroundStyle(color)
-                Text(title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(isDestructive ? Color.red : .primary)
-                Spacer()
-                if let shortcut {
-                    Text(shortcut)
-                        .font(.system(size: 12))
+            Button(action: { manager.skipBreak() }) {
+                HStack {
+                    Text("Skip to Next Hour")
+                    Spacer()
+                    Text("⇧⌘S")
                         .foregroundStyle(.secondary)
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
             }
-            .contentShape(Rectangle())
-            .padding(.horizontal, 16)
-            .padding(.vertical, 6)
+            .keyboardShortcut("s", modifiers: [.command, .shift])
+            
+            Menu {
+                Button(action: { manager.addWorkTime(minutes: 1) }) {
+                    Text("1 Minute")
+                }
+                Button(action: { manager.addWorkTime(minutes: 2) }) {
+                    Text("2 Minutes")
+                }
+                Button(action: { manager.addWorkTime(minutes: 3) }) {
+                    Text("3 Minutes")
+                }
+                Button(action: { manager.addWorkTime(minutes: 5) }) {
+                    Text("5 Minutes")
+                }
+                Button(action: { manager.addWorkTime(minutes: 10) }) {
+                    Text("10 Minutes")
+                }
+            } label: {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                        .symbolRenderingMode(.hierarchical)
+                    Text("Add Time")
+                    Spacer()
+                    Text("⌘T")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
+            }
+            
+            Divider()
+            
+            Button(action: { SettingsWindowManager().showSettingsWindow() }) {
+                HStack {
+                    Text("Settings...")
+                    Spacer()
+                    Text("⌘,")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
+            }
+            .keyboardShortcut(",", modifiers: .command)
+            
+            Divider()
+            
+            Button(action: {
+                manager.cleanup()
+                NSApplication.shared.terminate(nil)
+            }) {
+                HStack {
+                    Text("Quit RestMode")
+                    Spacer()
+                    Text("⌘Q")
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 3)
+            }
+            .keyboardShortcut("q", modifiers: .command)
         }
-        .buttonStyle(.plain)
-        .background(Color.primary.opacity(0.0001)) // Helps with hover
+    }
+    
+    // Helper function to format time
+    private func formatTimeRemaining(_ seconds: Int) -> String {
+        if seconds <= 0 {
+            return "0s"
+        }
+        if seconds < 60 {
+            return "\(seconds)s"
+        }
+        let minutes = seconds / 60
+        return "\(minutes)m"
     }
 }
-
 
