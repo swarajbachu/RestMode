@@ -116,9 +116,16 @@ private struct PostponeOptions: View {
             
             // Skip button
             Button(action: { manager.skipBreak() }) {
-                Text("Skip")
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 6) {
+                    Image(systemName: "forward.end")
+                        .font(.system(size: 12, weight: .medium))
+                    Text("Skip")
+                        .font(.system(size: 15, weight: .regular))
+                }
+                .frame(width: 90, height: 36)
+                .background(Color.primary.opacity(0.05))
+                .clipShape(Capsule())
+                .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
         }
