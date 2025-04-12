@@ -9,7 +9,7 @@ final class SettingsManager: ObservableObject {
         didSet {
             defaults.set(launchAtLogin, forKey: "launchAtLogin")
             objectWillChange.send()
-            // TODO: Implement actual login item management
+            LaunchAtLoginManager.shared.setLaunchAtLogin(launchAtLogin)
         }
     }
     
@@ -172,6 +172,9 @@ final class SettingsManager: ObservableObject {
         self.preventSkipping = true
         self.showCountdown = true
         
+        // Initialize launch at login from actual system state
+        self.launchAtLogin = LaunchAtLoginManager.shared.isEnabled()
+        
         // Then load from UserDefaults, overriding defaults if values exist
         if defaults.object(forKey: "workModeDuration") != nil {
             self.workModeDuration = defaults.integer(forKey: "workModeDuration")
@@ -196,7 +199,6 @@ final class SettingsManager: ObservableObject {
         }
         
         // Load boolean settings
-        self.launchAtLogin = defaults.bool(forKey: "launchAtLogin")
         self.startTimerOnLaunch = defaults.bool(forKey: "startTimerOnLaunch")
         self.autoCheckUpdates = defaults.bool(forKey: "autoCheckUpdates")
         self.autoDownloadUpdates = defaults.bool(forKey: "autoDownloadUpdates")
