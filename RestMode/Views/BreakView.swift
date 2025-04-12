@@ -9,8 +9,7 @@ struct BreakView: View {
     let isPresented: Bool
     
     var body: some View {
-        // Remove internal ZStack and background, rely on container
-        VStack(spacing: 40) {
+        VStack(spacing: 32) {
             TimerSection()
                 // Animate timer section
                 .offset(y: isPresented ? 0 : 20)
@@ -33,16 +32,16 @@ private struct TimerSection: View {
     @EnvironmentObject var manager: RestModeManager
     
     var body: some View {
-        VStack(spacing: 25) {
+        VStack(spacing: 32) {
             TimerCircle()
             
-            VStack(spacing: 12) {
-                Text("Time to Rest Your Eyes")
-                    .font(.system(size: 28, weight: .bold))
+            VStack(spacing: 10) {
+                Text("Time for an Eye Break")
+                    .font(.system(size: 24, weight: .semibold))
                     .multilineTextAlignment(.center)
                 
-                Text("Look at something 20 feet away\nto reduce eye strain")
-                    .font(.body)
+                Text("Look at something 20 feet away")
+                    .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
@@ -55,24 +54,33 @@ private struct TimerCircle: View {
     
     var body: some View {
         ZStack {
-            // Timer circle
+            // Background circle
             Circle()
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 6)
-                .frame(width: 200, height: 200)
+                .stroke(Color.secondary.opacity(0.1), lineWidth: 8)
+                .frame(width: 180, height: 180)
             
+            // Progress circle
             Circle()
                 .trim(from: 0, to: CGFloat(manager.timeRemaining) / 20.0)
-                .stroke(Color.blue, style: StrokeStyle(lineWidth: 6, lineCap: .round))
-                .frame(width: 200, height: 200)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.blue, Color.blue.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 180, height: 180)
                 .rotationEffect(.degrees(-90))
+                .animation(.smooth, value: manager.timeRemaining)
             
-            VStack(spacing: 8) {
+            VStack(spacing: 4) {
                 Text(timeString(from: manager.timeRemaining))
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
+                    .font(.system(size: 44, weight: .medium, design: .rounded))
                     .monospacedDigit()
                 
-                Text("remaining")
-                    .font(.subheadline)
+                Text("seconds")
+                    .font(.system(size: 14, weight: .regular))
                     .foregroundStyle(.secondary)
             }
         }
@@ -84,15 +92,15 @@ private struct PostponeOptions: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            Text("Not a good time?")
-                .font(.headline)
+            Text("Need more time?")
+                .font(.system(size: 14, weight: .medium))
                 .foregroundStyle(.secondary)
             
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 PostponeButton(
                     title: "5 min",
                     icon: "clock",
-                    color: .orange
+                    color: .blue
                 ) {
                     manager.postponeBreak(minutes: 5)
                 }
@@ -108,17 +116,19 @@ private struct PostponeOptions: View {
                 PostponeButton(
                     title: "Skip",
                     icon: "forward.end.fill",
-                    color: .red
+                    color: .secondary
                 ) {
                     manager.skipBreak()
                 }
             }
         }
-        .padding(.vertical, 30)
-        .padding(.horizontal, 40)
-        .background(.ultraThinMaterial)
-        .background(Color.white.opacity(0.05))
-        .cornerRadius(20)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 32)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .shadow(color: .black.opacity(0.03), radius: 10, y: 4)
+        )
     }
 }
 
@@ -130,24 +140,20 @@ private struct PostponeButton: View {
     
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Image(systemName: icon)
-                    .font(.system(size: 24))
+                    .font(.system(size: 20))
                 Text(title)
-                    .font(.headline)
+                    .font(.system(size: 13, weight: .medium))
             }
-            .frame(width: 100)
+            .frame(width: 80)
             .padding(.vertical, 12)
             .background(color.opacity(0.1))
             .foregroundStyle(color)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain)
+        .contentShape(Rectangle())
     }
 }
 
-// Helper function to format time (ensure it handles seconds correctly)
-private func timeStringSecs(from seconds: Int) -> String {
-    let seconds = max(0, seconds)
-    return String(format: "%02d", seconds)
-} 

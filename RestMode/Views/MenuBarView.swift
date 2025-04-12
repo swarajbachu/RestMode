@@ -5,18 +5,21 @@ struct MenuBarView: View {
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             ProgressSection()
             
             Divider()
+                .padding(.horizontal, 12)
             
             ActionButtons()
             
             Divider()
+                .padding(.horizontal, 12)
             
             QuitButton()
         }
-        .frame(width: 240)
+        .frame(width: 260)
+        .padding(.vertical, 12)
     }
 }
 
@@ -24,34 +27,35 @@ private struct ProgressSection: View {
     @EnvironmentObject var manager: RestModeManager
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
                 Image("Cloud")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 24, height: 24)
+                    .frame(width: 20, height: 20)
                 Text("Rest Time")
-                    .font(.headline)
+                    .font(.system(size: 14, weight: .semibold))
                 Spacer()
             }
+            .padding(.horizontal, 16)
             
-            ProgressBar(progress: manager.progress)
-            
-            HStack {
-                Text(timeString(from: Int(manager.nextBreakTime.timeIntervalSince(Date()))))
-                    .font(.system(.body, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
+            VStack(spacing: 8) {
+                ProgressBar(progress: manager.progress)
                 
-                Spacer()
-                
-                Text("until break")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                HStack {
+                    Text(timeString(from: Int(manager.nextBreakTime.timeIntervalSince(Date()))))
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                        .monospacedDigit()
+                    
+                    Spacer()
+                    
+                    Text("until next break")
+                        .font(.system(size: 12))
+                        .foregroundStyle(.secondary)
+                }
             }
+            .padding(.horizontal, 16)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
     }
 }
 
@@ -59,15 +63,24 @@ private struct ProgressBar: View {
     let progress: Double
     
     var body: some View {
-        ZStack(alignment: .leading) {
-            Capsule()
-                .fill(Color.secondary.opacity(0.2))
-                .frame(height: 4)
-            
-            Capsule()
-                .fill(Color.blue)
-                .frame(width: 200 * progress, height: 4)
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.2))
+                    .frame(height: 4)
+                
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.blue, Color.blue.opacity(0.7)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geometry.size.width * progress, height: 4)
+            }
         }
+        .frame(height: 4)
     }
 }
 
@@ -75,11 +88,12 @@ private struct ActionButtons: View {
     @EnvironmentObject var manager: RestModeManager
     
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 2) {
             MenuButton(
                 title: "Start Break Now",
                 icon: "play.circle.fill",
-                color: .blue
+                color: .blue,
+                isDestructive: false
             ) {
                 manager.startBreak()
             }
@@ -87,15 +101,17 @@ private struct ActionButtons: View {
             MenuButton(
                 title: "Postpone 5 Minutes",
                 icon: "clock.arrow.circlepath",
-                color: .orange
+                color: .primary,
+                isDestructive: false
             ) {
                 manager.postponeBreak(minutes: 5)
             }
             
             MenuButton(
                 title: "Skip to Next Hour",
-                icon: "forward.circle.fill",
-                color: .red
+                icon: "forward.end.fill",
+                color: .primary,
+                isDestructive: true
             ) {
                 manager.skipBreak()
             }
@@ -110,7 +126,8 @@ private struct QuitButton: View {
         MenuButton(
             title: "Quit RestMode",
             icon: "power",
-            color: .secondary
+            color: .primary,
+            isDestructive: true
         ) {
             manager.cleanup()
             NSApplication.shared.terminate(nil)
@@ -122,21 +139,27 @@ struct MenuButton: View {
     let title: String
     let icon: String
     let color: Color
+    let isDestructive: Bool
     let action: () -> Void
     
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
+                    .font(.system(size: 12))
                     .foregroundStyle(color)
                 Text(title)
-                    .foregroundStyle(.primary)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isDestructive ? Color.red : .primary)
                 Spacer()
             }
             .contentShape(Rectangle())
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
         }
         .buttonStyle(.plain)
+        .background(Color.primary.opacity(0.0001)) // Helps with hover
     }
-} 
+}
+
+
