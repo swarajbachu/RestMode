@@ -325,6 +325,33 @@ class RestModeManager: ObservableObject {
         print("RestModeManager: Cleanup completed")
     }
     
+    func addWorkTime(minutes: Int) {
+        print("RestModeManager: Adding \(minutes) minutes to work time")
+        guard !isCleaningUp else {
+            print("RestModeManager: Cannot add work time while cleaning up")
+            return
+        }
+        
+        serialQueue.async { [weak self] in
+            guard let self = self, !self.isBreakActive else {
+                print("RestModeManager: Cannot add work time during an active break")
+                return
+            }
+            
+            // Stop existing work timer
+            self.workTimer?.invalidate()
+            self.workTimer = nil
+            
+            // Update state
+            DispatchQueue.main.async {
+                self.nextBreakTime = self.nextBreakTime.addingTimeInterval(TimeInterval(minutes * 60))
+                self.updateProgress() // Update progress immediately
+                self.startWorkTimer() // Restart timer with new end time
+                self.scheduleNotification() // Reschedule notification
+            }
+        }
+    }
+    
     deinit {
         print("RestModeManager: Deinitializing")
         cleanup()
