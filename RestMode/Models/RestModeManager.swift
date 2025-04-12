@@ -10,6 +10,7 @@ class RestModeManager: ObservableObject {
     @Published var nextBreakTime: Date
     @Published var postponeOptions = true
     @Published var progress: Double = 0.0
+    @Published private(set) var completedBreaks = 0
     
     // MARK: - Private Properties
     private var timer: Timer?
@@ -125,7 +126,15 @@ class RestModeManager: ObservableObject {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
             self.isBreakActive = true
-            self.timeRemaining = self.settings.shortBreakDuration
+            
+            // Check if it's time for a long break
+            let isLongBreak = self.settings.longBreaksEnabled && 
+                            self.completedBreaks >= 0 && 
+                            (self.completedBreaks + 1) % self.settings.longBreakInterval == 0
+            print("isLongBreak: \(isLongBreak), completedBreaks: \(self.completedBreaks), longBreakInterval: \(self.settings.longBreakInterval)")
+            
+            // Set duration based on break type
+            self.timeRemaining = isLongBreak ? self.settings.longBreakDuration : self.settings.shortBreakDuration
             self.postponeOptions = !self.settings.hideSkipButton
             
             self.timer?.invalidate()
@@ -134,12 +143,15 @@ class RestModeManager: ObservableObject {
                 if self.timeRemaining > 0 {
                     self.timeRemaining -= 1
                 } else {
-                    if self.settings.longBreaksEnabled && 
-                       self.progress >= Double(self.settings.longBreakInterval) {
-                        self.startLongBreak()
+                    // Increment completed breaks counter and handle break completion
+                    if isLongBreak {
+                        // Reset counter after a long break
+                        self.resetCompletedBreaks()
                     } else {
-                        self.skipBreak()
+                        // Only increment for short breaks
+                        self.completedBreaks += 1
                     }
+                    self.skipBreak()
                 }
             }
             
@@ -213,6 +225,13 @@ class RestModeManager: ObservableObject {
             self.timer?.invalidate()
             self.timer = nil
             
+            // Only reset completed breaks if postponing a long break when its over
+            if self.isBreakActive && self.settings.longBreaksEnabled && 
+               self.completedBreaks >= 0 && 
+               self.completedBreaks % self.settings.longBreakInterval == 0 {
+                self.resetCompletedBreaks()
+            }
+            
             // Update state
             DispatchQueue.main.async {
                 self.isBreakActive = false
@@ -243,8 +262,15 @@ class RestModeManager: ObservableObject {
         workTimer = nil
     }
     
+    private func resetCompletedBreaks() {
+        DispatchQueue.main.async {
+            self.completedBreaks = 0
+        }
+    }
+    
     private func resetTimers() {
         pauseTimers()
+        resetCompletedBreaks()
         nextBreakTime = Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60))
         startWorkTimer()
     }

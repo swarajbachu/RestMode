@@ -83,8 +83,8 @@ struct SettingsView: View {
             .frame(width: 220)
             
             ZStack {
-                VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                // VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
+                //     .clipShape(RoundedRectangle(cornerRadius: 12))
                 
                 Group {
                     switch selectedTab {
