@@ -45,46 +45,56 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: SettingsManager
     
     var body: some View {
-        HSplitView {
-            List(selection: $selectedTab) {
-                Section("Settings") {
-                    Label(Tabs.general.title, systemImage: Tabs.general.icon)
-                        .tag(Tabs.general)
-                }
-                
-                Section("Productivity & Care") {
-                    Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon)
-                        .tag(Tabs.workMode)
-                    Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon)
-                        .tag(Tabs.restMode)
-                    Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon)
-                        .tag(Tabs.wellnessReminders)
-                }
-                
-
-                // TODO: Add these back in later when we have more settings
-                // Section("Personalize") {
-                //     Label(Tabs.customization.title, systemImage: Tabs.customization.icon)
-                //         .tag(Tabs.customization)
-                //     Label(Tabs.automation.title, systemImage: Tabs.automation.icon)
-                //         .tag(Tabs.automation)
-                //     Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon)
-                //         .tag(Tabs.notifications)
-                //     Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon)
-                //         .tag(Tabs.keyboardShortcuts)
-                // }
-                
-                Section("ReduceTime") {
-                    Label(Tabs.about.title, systemImage: Tabs.about.icon)
-                        .tag(Tabs.about)
-                }
-            }
-            .listStyle(.sidebar)
-            .frame(width: 220)
-            
+        HStack(spacing: 0) {
+            // Left sidebar with glassmorphism effect
             ZStack {
-                // VisualEffectView(material: .hudWindow, blendingMode: .behindWindow)
-                //     .clipShape(RoundedRectangle(cornerRadius: 12))
+                VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
+                    .ignoresSafeArea()
+                
+                List(selection: $selectedTab) {
+                    Section("Settings") {
+                        Label(Tabs.general.title, systemImage: Tabs.general.icon)
+                            .tag(Tabs.general)
+                    }
+                    
+                    Section("Productivity & Care") {
+                        Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon)
+                            .tag(Tabs.workMode)
+                        Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon)
+                            .tag(Tabs.restMode)
+                        Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon)
+                            .tag(Tabs.wellnessReminders)
+                    }
+                    
+                    // TODO: Add these back in later when we have more settings
+                    // Section("Personalize") {
+                    //     Label(Tabs.customization.title, systemImage: Tabs.customization.icon)
+                    //         .tag(Tabs.customization)
+                    //     Label(Tabs.automation.title, systemImage: Tabs.automation.icon)
+                    //         .tag(Tabs.automation)
+                    //     Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon)
+                    //         .tag(Tabs.notifications)
+                    //     Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon)
+                    //         .tag(Tabs.keyboardShortcuts)
+                    // }
+                    
+                    Section("ReduceTime") {
+                        Label(Tabs.about.title, systemImage: Tabs.about.icon)
+                            .tag(Tabs.about)
+                    }
+                }
+                .listStyle(.sidebar)
+                .scrollContentBackground(.hidden)
+                .scrollIndicators(.hidden)
+                .frame(width: 180, alignment: .leading)
+            }
+            .frame(width: 180)
+            
+            // Right content area with opaque background
+            ZStack {
+                VisualEffectView(material: .contentBackground, blendingMode: .withinWindow)
+                    .ignoresSafeArea()
+                    .shadow(color: .black.opacity(0.03), radius: 3, x: -2, y: 0)
                 
                 Group {
                     switch selectedTab {
@@ -108,13 +118,10 @@ struct SettingsView: View {
                         AboutView()
                     }
                 }
+                .padding(20)
             }
-            .padding(20)
         }
-        .background {
-            VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
-                .ignoresSafeArea()
-        }
+        .frame(minWidth: 800, minHeight: 500)
     }
 }
 

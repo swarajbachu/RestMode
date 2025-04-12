@@ -11,7 +11,7 @@ class SettingsWindowManager: ObservableObject {
         }
         
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 680),
+            contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
             styleMask: [.titled, .closable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -23,8 +23,10 @@ class SettingsWindowManager: ObservableObject {
         window.isMovableByWindowBackground = true
         window.center()
         window.setFrameAutosaveName("Settings")
-        window.contentView = NSHostingView(rootView: SettingsView()
-            .environmentObject(SettingsManager.shared))
+        
+        let contentView = SettingsView()
+            .environmentObject(SettingsManager.shared)
+        window.contentView = NSHostingView(rootView: contentView)
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         
@@ -48,5 +50,20 @@ private class WindowDelegate: NSObject, NSWindowDelegate {
     
     func windowWillClose(_ notification: Notification) {
         onClose()
+    }
+}
+
+// Helper extension to find subviews
+private extension NSView {
+    func findSubview<T: NSView>(ofType type: T.Type) -> T? {
+        if let splitView = self as? T {
+            return splitView
+        }
+        for subview in subviews {
+            if let found = subview.findSubview(ofType: type) {
+                return found
+            }
+        }
+        return nil
     }
 } 
