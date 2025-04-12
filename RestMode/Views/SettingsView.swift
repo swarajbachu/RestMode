@@ -33,10 +33,33 @@ struct SettingsView: View {
             case .restMode: return "cloud"
             case .wellnessReminders: return "heart"
             case .customization: return "paintbrush"
-            case .automation: return "repeat"
+            case .automation: return "arrow.triangle.2.circlepath"
             case .notifications: return "bell"
             case .keyboardShortcuts: return "command"
             case .about: return "info.circle"
+            }
+        }
+        
+        var gradient: [Color] {
+            switch self {
+            case .general:
+                return [Color(hex: "8E54E9"), Color(hex: "4776E6")]
+            case .workMode:
+                return [Color(hex: "FF512F"), Color(hex: "DD2476")]
+            case .restMode:
+                return [Color(hex: "667EEA"), Color(hex: "764BA2")]
+            case .wellnessReminders:
+                return [Color(hex: "FF6B6B"), Color(hex: "FF8E8E")]
+            case .customization:
+                return [Color(hex: "45B649"), Color(hex: "DCE35B")]
+            case .automation:
+                return [Color(hex: "FF8008"), Color(hex: "FFC837")]
+            case .notifications:
+                return [Color(hex: "36D1DC"), Color(hex: "5B86E5")]
+            case .keyboardShortcuts:
+                return [Color(hex: "CB356B"), Color(hex: "BD3F32")]
+            case .about:
+                return [Color(hex: "753A88"), Color(hex: "CC2B5E")]
             }
         }
     }
@@ -51,44 +74,83 @@ struct SettingsView: View {
                 VisualEffectView(material: .sidebar, blendingMode: .behindWindow)
                     .ignoresSafeArea()
                 
-                List(selection: $selectedTab) {
-                    Section("Settings") {
-                        Label(Tabs.general.title, systemImage: Tabs.general.icon)
-                            .tag(Tabs.general)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Settings")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 16)
+                            
+                            SidebarItemView(
+                                title: Tabs.general.title,
+                                icon: Tabs.general.icon,
+                                gradient: Tabs.general.gradient,
+                                isSelected: selectedTab == .general
+                            ) {
+                                selectedTab = .general
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Productivity & Care")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 16)
+                            
+                            VStack(spacing: 8) {
+                                SidebarItemView(
+                                    title: Tabs.workMode.title,
+                                    icon: Tabs.workMode.icon,
+                                    gradient: Tabs.workMode.gradient,
+                                    isSelected: selectedTab == .workMode
+                                ) {
+                                    selectedTab = .workMode
+                                }
+                                
+                                SidebarItemView(
+                                    title: Tabs.restMode.title,
+                                    icon: Tabs.restMode.icon,
+                                    gradient: Tabs.restMode.gradient,
+                                    isSelected: selectedTab == .restMode
+                                ) {
+                                    selectedTab = .restMode
+                                }
+                                
+                                SidebarItemView(
+                                    title: Tabs.wellnessReminders.title,
+                                    icon: Tabs.wellnessReminders.icon,
+                                    gradient: Tabs.wellnessReminders.gradient,
+                                    isSelected: selectedTab == .wellnessReminders
+                                ) {
+                                    selectedTab = .wellnessReminders
+                                }
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("ReduceTime")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 16)
+                            
+                            SidebarItemView(
+                                title: Tabs.about.title,
+                                icon: Tabs.about.icon,
+                                gradient: Tabs.about.gradient,
+                                isSelected: selectedTab == .about
+                            ) {
+                                selectedTab = .about
+                            }
+                        }
                     }
-                    
-                    Section("Productivity & Care") {
-                        Label(Tabs.workMode.title, systemImage: Tabs.workMode.icon)
-                            .tag(Tabs.workMode)
-                        Label(Tabs.restMode.title, systemImage: Tabs.restMode.icon)
-                            .tag(Tabs.restMode)
-                        Label(Tabs.wellnessReminders.title, systemImage: Tabs.wellnessReminders.icon)
-                            .tag(Tabs.wellnessReminders)
-                    }
-                    
-                    // TODO: Add these back in later when we have more settings
-                    // Section("Personalize") {
-                    //     Label(Tabs.customization.title, systemImage: Tabs.customization.icon)
-                    //         .tag(Tabs.customization)
-                    //     Label(Tabs.automation.title, systemImage: Tabs.automation.icon)
-                    //         .tag(Tabs.automation)
-                    //     Label(Tabs.notifications.title, systemImage: Tabs.notifications.icon)
-                    //         .tag(Tabs.notifications)
-                    //     Label(Tabs.keyboardShortcuts.title, systemImage: Tabs.keyboardShortcuts.icon)
-                    //         .tag(Tabs.keyboardShortcuts)
-                    // }
-                    
-                    Section("ReduceTime") {
-                        Label(Tabs.about.title, systemImage: Tabs.about.icon)
-                            .tag(Tabs.about)
-                    }
+                    .padding(.vertical, 16)
                 }
-                .listStyle(.sidebar)
                 .scrollContentBackground(.hidden)
                 .scrollIndicators(.hidden)
-                .frame(width: 180, alignment: .leading)
+                .frame(width: 220)
             }
-            .frame(width: 180)
+            .frame(width: 220)
             
             // Right content area with opaque background
             ZStack {
@@ -122,6 +184,84 @@ struct SettingsView: View {
             }
         }
         .frame(minWidth: 800, minHeight: 500)
+    }
+}
+
+struct SidebarItemView: View {
+    let title: String
+    let icon: String
+    let gradient: [Color]
+    let isSelected: Bool
+    let action: () -> Void
+    
+    private var iconName: String {
+        let noFillIcons = ["gearshape", "command"]
+        return noFillIcons.contains(icon) ? icon : icon + ".fill"
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                // Icon with gradient background
+                ZStack {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(
+                            LinearGradient(
+                                colors: gradient,
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 32, height: 32)
+                    
+                    Image(systemName: iconName)
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(isSelected ? .primary : .secondary)
+                
+                Spacer(minLength: 24)
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 20)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? Color.primary.opacity(0.1) : .clear)
+                    .padding(.horizontal, 12)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// Add Color hex initializer extension
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3: // RGB (12-bit)
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6: // RGB (24-bit)
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8: // ARGB (32-bit)
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 }
 
