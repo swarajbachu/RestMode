@@ -23,7 +23,7 @@ struct RestModeApp: App {
                     $0.size.height = 18
                     $0.size.width = 18 / ratio
                     return $0
-                }(NSImage(named: Int(manager.nextBreakTime.timeIntervalSince(Date())) <= 280 ? "MenuBarIconEyesClosed" : "MenuBarIcon")!)
+                }(NSImage(named: Int(manager.nextBreakTime.timeIntervalSince(Date())) <= 60 ? "MenuBarIconEyesClosed" : "MenuBarIcon")!)
                 
                 Image(nsImage: image)
         }
