@@ -296,42 +296,42 @@ struct GeneralSettingsView: View {
                     Label("Startup", systemImage: "power")
                         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
                 }
-                
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Automatically check for updates")
-                            Spacer()
-                            Toggle("", isOn: $settings.autoCheckUpdates)
-                                .toggleStyle(.switch)
-                        }
+                // TODO: Add when this feature is implemented
+                // GroupBox {
+                //     VStack(alignment: .leading, spacing: 12) {
+                //         HStack {
+                //             Text("Automatically check for updates")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.autoCheckUpdates)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Automatically download updates")
-                            Spacer()
-                            Toggle("", isOn: $settings.autoDownloadUpdates)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Automatically download updates")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.autoDownloadUpdates)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        Button(action: {
-                            // Implement update check
-                        }) {
-                            Text("Check for updates")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                } label: {
-                    Label("Updates", systemImage: "arrow.triangle.2.circlepath")
-                        .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
-                }
+                //         Button(action: {
+                //             // Implement update check
+                //         }) {
+                //             Text("Check for updates")
+                //                 .frame(maxWidth: .infinity)
+                //         }
+                //         .buttonStyle(.borderedProminent)
+                //         .controlSize(.large)
+                //     }
+                //     .padding(.vertical, 12)
+                //     .padding(.horizontal, 16)
+                // } label: {
+                //     Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+                //         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
+                // }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
