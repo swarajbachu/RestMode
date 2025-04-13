@@ -1,50 +1,68 @@
 import SwiftUI
 
+// Separate view for timer display to isolate updates
+struct TimerDisplay: View {
+    @ObservedObject var timerState: TimerState
+    
+    var body: some View {
+        Text(formatTimeRemaining(Int(timerState.nextBreakTime.timeIntervalSince(Date()))))
+            .font(.system(.body, design: .monospaced).bold())
+            .fixedSize()
+            .frame(minWidth: 40, alignment: .trailing)
+            .foregroundStyle(.primary)
+    }
+    
+    private func formatTimeRemaining(_ seconds: Int) -> String {
+        if seconds <= 0 {
+            return "0s"
+        }
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return "\(minutes):\(remainingSeconds < 10 ? "0" : "")\(remainingSeconds)"
+    }
+}
+
+// Menu item component to reduce redundancy
+struct MenuItem: View {
+    let title: String
+    let shortcut: String
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack {
+                Text(title)
+                Spacer()
+                Text(shortcut)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 3)
+        }
+    }
+}
+
 struct MenuBarView: View {
     @EnvironmentObject var manager: RestModeManager
     @EnvironmentObject var settings: SettingsManager
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button(action: { manager.startBreak() }) {
-                HStack {
-                    Text("Start Break Now")
-                    Spacer()
-                    Text("⌘B")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 3)
+            MenuItem(title: "Start Break Now", shortcut: "⌘B") {
+                manager.startBreak()
             }
             .keyboardShortcut("b", modifiers: .command)
             
-            Button(action: { manager.skipBreak() }) {
-                HStack {
-                    Text("Skip to Next Hour")
-                    Spacer()
-                    Text("⇧⌘S")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 3)
+            MenuItem(title: "Skip to Next Hour", shortcut: "⇧⌘S") {
+                manager.skipBreak()
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
             
             Menu {
-                Button(action: { manager.addWorkTime(minutes: 1) }) {
-                    Text("1 Minute")
-                }
-                Button(action: { manager.addWorkTime(minutes: 2) }) {
-                    Text("2 Minutes")
-                }
-                Button(action: { manager.addWorkTime(minutes: 3) }) {
-                    Text("3 Minutes")
-                }
-                Button(action: { manager.addWorkTime(minutes: 5) }) {
-                    Text("5 Minutes")
-                }
-                Button(action: { manager.addWorkTime(minutes: 10) }) {
-                    Text("10 Minutes")
+                ForEach([1, 2, 3, 5, 10], id: \.self) { minutes in
+                    Button(action: { manager.addWorkTime(minutes: minutes) }) {
+                        Text("\(minutes) Minute\(minutes == 1 ? "" : "s")")
+                    }
                 }
             } label: {
                 HStack {
@@ -61,47 +79,19 @@ struct MenuBarView: View {
             
             Divider()
             
-            Button(action: { SettingsWindowManager().showSettingsWindow() }) {
-                HStack {
-                    Text("Settings...")
-                    Spacer()
-                    Text("⌘,")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 3)
+            MenuItem(title: "Settings...", shortcut: "⌘,") {
+                SettingsWindowManager().showSettingsWindow()
             }
             .keyboardShortcut(",", modifiers: .command)
             
             Divider()
             
-            Button(action: {
+            MenuItem(title: "Quit RestMode", shortcut: "⌘Q") {
                 manager.cleanup()
                 NSApplication.shared.terminate(nil)
-            }) {
-                HStack {
-                    Text("Quit RestMode")
-                    Spacer()
-                    Text("⌘Q")
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 3)
             }
             .keyboardShortcut("q", modifiers: .command)
         }
-    }
-    
-    // Helper function to format time
-    private func formatTimeRemaining(_ seconds: Int) -> String {
-        if seconds <= 0 {
-            return "0s"
-        }
-        if seconds < 60 {
-            return "\(seconds)s"
-        }
-        let minutes = seconds / 60
-        return "\(minutes)m"
     }
 }
 

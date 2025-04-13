@@ -2,29 +2,75 @@ import SwiftUI
 import UserNotifications
 import Combine
 
+// Separate timer state to prevent UI re-renders
+final class TimerState: ObservableObject {
+    @Published var timeRemaining: Int {
+        willSet {
+            objectWillChange.send()
+        }
+    }
+    @Published var nextBreakTime = Date()
+    @Published var progress: Double = 0.0
+    @Published var isLongBreak = false
+    
+    init(initialTime: Int = 20) {
+        self.timeRemaining = initialTime
+    }
+    
+    func updateNextBreak(to date: Date) {
+        self.nextBreakTime = date
+        objectWillChange.send()
+    }
+    
+    func updateTimeRemaining(_ seconds: Int) {
+        DispatchQueue.main.async {
+            self.timeRemaining = seconds
+            self.objectWillChange.send()
+        }
+    }
+    
+    func decrementTimeRemaining() {
+        DispatchQueue.main.async {
+            self.timeRemaining = max(0, self.timeRemaining - 1)
+            self.objectWillChange.send()
+        }
+    }
+    
+    func updateProgress(totalTime: TimeInterval) {
+        let remainingTime = self.nextBreakTime.timeIntervalSince(Date())
+        self.progress = max(0, min(1, (totalTime - remainingTime) / totalTime))
+        objectWillChange.send()
+    }
+    
+    func setLongBreak(_ isLong: Bool) {
+        self.isLongBreak = isLong
+        objectWillChange.send()
+    }
+}
+
 class RestModeManager: ObservableObject {
 
     // MARK: - Published Properties
     @Published var isBreakActive = false
-    @Published var timeRemaining = 20
-    @Published var nextBreakTime: Date
     @Published var postponeOptions = true
-    @Published var progress: Double = 0.0
     @Published private(set) var completedBreaks = 0
+    
+    // MARK: - Timer State
+    @Published var timerState: TimerState
     
     // MARK: - Private Properties
     private var timer: Timer?
     private var workTimer: Timer?
     private var isCleaningUp = false
     private let serialQueue = DispatchQueue(label: "com.restmode.serial", qos: .userInteractive)
-    private let settings: SettingsManager
+    let settings: SettingsManager
     private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     init(settings: SettingsManager = .shared) {
         print("RestModeManager: Initializing")
         self.settings = settings
-        self.nextBreakTime = Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60))
+        self.timerState = TimerState(initialTime: settings.shortBreakDuration)
         
         setupNotifications()
         if settings.startTimerOnLaunch {
@@ -53,8 +99,8 @@ class RestModeManager: ObservableObject {
             .sink { [weak self] newDuration in
                 guard let self = self, self.isBreakActive else { return }
                 // Only update if we're in a short break
-                if self.timeRemaining <= self.settings.shortBreakDuration {
-                    self.timeRemaining = newDuration
+                if self.timerState.timeRemaining <= self.settings.shortBreakDuration {
+                    self.timerState.updateTimeRemaining(newDuration)
                 }
             }
             .store(in: &cancellables)
@@ -64,8 +110,8 @@ class RestModeManager: ObservableObject {
             .sink { [weak self] newDuration in
                 guard let self = self, self.isBreakActive else { return }
                 // Only update if we're in a long break
-                if self.timeRemaining > self.settings.shortBreakDuration {
-                    self.timeRemaining = newDuration
+                if self.timerState.timeRemaining > self.settings.shortBreakDuration {
+                    self.timerState.updateTimeRemaining(newDuration)
                 }
             }
             .store(in: &cancellables)
@@ -81,7 +127,8 @@ class RestModeManager: ObservableObject {
     
     private func resetWorkTimer(withDuration duration: Int) {
         stopTimers()
-        nextBreakTime = Date().addingTimeInterval(TimeInterval(duration * 60))
+        let nextBreak = Date().addingTimeInterval(TimeInterval(duration * 60))
+        timerState.updateNextBreak(to: nextBreak)
         updateProgress()
         startWorkTimer()
         scheduleNotification()
@@ -112,7 +159,7 @@ class RestModeManager: ObservableObject {
                 }
             }
             
-            if Date() >= self.nextBreakTime {
+            if Date() >= self.timerState.nextBreakTime {
                 self.startBreak()
             }
         }
@@ -129,58 +176,53 @@ class RestModeManager: ObservableObject {
             
             // Check if it's time for a long break
             let isLongBreak = self.settings.longBreaksEnabled && 
-                            self.completedBreaks >= 0 && 
-                            (self.completedBreaks + 1) % self.settings.longBreakInterval == 0
-            print("isLongBreak: \(isLongBreak), completedBreaks: \(self.completedBreaks), longBreakInterval: \(self.settings.longBreakInterval)")
+                            self.completedBreaks > 0 && 
+                            (self.completedBreaks % self.settings.longBreakInterval == 0)
             
             // Set duration based on break type
-            self.timeRemaining = isLongBreak ? self.settings.longBreakDuration : self.settings.shortBreakDuration
+            let duration = isLongBreak ? self.settings.longBreakDuration : self.settings.shortBreakDuration
+            self.timerState.setLongBreak(isLongBreak)
+            self.timerState.updateTimeRemaining(duration)
             self.postponeOptions = !self.settings.hideSkipButton
             
+            print("Starting \(isLongBreak ? "long" : "short") break. Duration: \(duration)s, Completed breaks: \(self.completedBreaks)")
+            
             self.timer?.invalidate()
-            self.timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+            // Create and schedule the timer on the main thread
+            self.timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
                 guard let self = self else { return }
-                if self.timeRemaining > 0 {
-                    self.timeRemaining -= 1
+                if self.timerState.timeRemaining > 0 {
+                    self.timerState.decrementTimeRemaining()
                 } else {
-                    // Increment completed breaks counter and handle break completion
                     if isLongBreak {
-                        // Reset counter after a long break
                         self.resetCompletedBreaks()
                     } else {
-                        // Only increment for short breaks
                         self.completedBreaks += 1
                     }
                     self.skipBreak()
                 }
-            }
-            
-            if let timer = self.timer {
-                RunLoop.main.add(timer, forMode: .common)
             }
         }
     }
     
     private func startCountdownTimer() {
         timer?.invalidate()
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             guard let self = self else { return }
-            if self.timeRemaining > 0 {
-                self.timeRemaining -= 1
+            if self.timerState.timeRemaining > 0 {
+                self.timerState.decrementTimeRemaining()
             } else {
                 self.startBreakTimer()
             }
         }
         
-        if let timer = timer {
-            RunLoop.main.add(timer, forMode: .common)
-        }
+        RunLoop.main.add(timer, forMode: .common)
+        self.timer = timer
     }
     
     private func updateProgress() {
         let totalTime = TimeInterval(settings.workModeDuration * 60)
-        let remainingTime = nextBreakTime.timeIntervalSince(Date())
-        progress = max(0, min(1, (totalTime - remainingTime) / totalTime))
+        timerState.updateProgress(totalTime: totalTime)
     }
     
     // MARK: - Public Methods
@@ -200,14 +242,13 @@ class RestModeManager: ObservableObject {
             // Show countdown if enabled
             if self.settings.showCountdown {
                 DispatchQueue.main.async {
-                    self.timeRemaining = self.settings.countdownDuration
+                    self.timerState.updateTimeRemaining(self.settings.countdownDuration)
                     self.startCountdownTimer()
                 }
-                return
+            } else {
+                // Start break immediately if countdown disabled
+                self.startBreakTimer()
             }
-            
-            // Start break immediately if countdown disabled
-            self.startBreakTimer()
         }
     }
     
@@ -235,7 +276,7 @@ class RestModeManager: ObservableObject {
             // Update state
             DispatchQueue.main.async {
                 self.isBreakActive = false
-                self.nextBreakTime = Date().addingTimeInterval(TimeInterval(minutes * 60))
+                self.timerState.updateNextBreak(to: Date().addingTimeInterval(TimeInterval(minutes * 60)))
                 self.startWorkTimer()
                 self.scheduleNotification()
             }
@@ -250,7 +291,7 @@ class RestModeManager: ObservableObject {
     private func startLongBreak() {
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
-            self.timeRemaining = self.settings.longBreakDuration
+            self.timerState.updateTimeRemaining(self.settings.longBreakDuration)
             self.startBreakTimer()
         }
     }
@@ -271,7 +312,7 @@ class RestModeManager: ObservableObject {
     private func resetTimers() {
         pauseTimers()
         resetCompletedBreaks()
-        nextBreakTime = Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60))
+        timerState.updateNextBreak(to: Date().addingTimeInterval(TimeInterval(settings.workModeDuration * 60)))
         startWorkTimer()
     }
     
@@ -301,7 +342,13 @@ class RestModeManager: ObservableObject {
         content.body = "Taking regular breaks helps reduce eye strain and maintain productivity."
         content.sound = .default
         
-        let timeInterval = nextBreakTime.timeIntervalSince(Date())
+        let timeInterval = timerState.nextBreakTime.timeIntervalSince(Date())
+        // Only schedule if the time interval is positive
+        guard timeInterval > 0 else {
+            print("RestModeManager: Cannot schedule notification - time interval must be positive")
+            return
+        }
+        
         let trigger = UNTimeIntervalNotificationTrigger(timeInterval: timeInterval, repeats: false)
         let request = UNNotificationRequest(identifier: "breakTime", content: content, trigger: trigger)
         
@@ -344,7 +391,7 @@ class RestModeManager: ObservableObject {
             
             // Update state
             DispatchQueue.main.async {
-                self.nextBreakTime = self.nextBreakTime.addingTimeInterval(TimeInterval(minutes * 60))
+                self.timerState.updateNextBreak(to: self.timerState.nextBreakTime.addingTimeInterval(TimeInterval(minutes * 60)))
                 self.updateProgress() // Update progress immediately
                 self.startWorkTimer() // Restart timer with new end time
                 self.scheduleNotification() // Reschedule notification

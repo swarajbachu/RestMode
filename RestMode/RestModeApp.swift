@@ -37,17 +37,13 @@ struct RestModeApp: App {
                     $0.size.height = 16
                     $0.size.width = 16 / ratio
                     return $0
-                }(NSImage(named: Int(manager.nextBreakTime.timeIntervalSince(Date())) <= 60 ? "MenuBarIconEyesClosed" : "MenuBarIcon")!)
+                }(NSImage(named: Int(manager.timerState.nextBreakTime.timeIntervalSince(Date())) <= 60 ? "MenuBarIconEyesClosed" : "MenuBarIcon")!)
                 
                 Image(nsImage: image)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.primary)
                 
-                Text(formatTimeRemaining(Int(manager.nextBreakTime.timeIntervalSince(Date()))))
-                    .font(.system(.body, design: .monospaced).bold())
-                    .fixedSize()
-                    .frame(minWidth: 40, alignment: .trailing)
-                    .foregroundStyle(.primary)
+                TimerDisplay(timerState: manager.timerState)
             }
             .padding(.horizontal, 2)
         }

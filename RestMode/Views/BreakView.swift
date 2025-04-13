@@ -47,7 +47,7 @@ private struct TimerSection: View {
     var body: some View {
         VStack(spacing: 32) {
             VStack(spacing: 12) {
-                Text("Time for a Break")
+                Text(manager.timerState.isLongBreak ? "Time for a Long Break" : "Time for a Break")
                     .font(.system(size: 24, weight: .medium))
                 
                 Text("Look at something 20 feet away")
@@ -56,22 +56,31 @@ private struct TimerSection: View {
                     .multilineTextAlignment(.center)
             }
             
-            TimerBar()
+            TimerBar(manager: manager)
         }
     }
 }
 
 private struct TimerBar: View {
     @EnvironmentObject var manager: RestModeManager
+    @ObservedObject private var timerState: TimerState
+    
+    init(manager: RestModeManager) {
+        self._timerState = ObservedObject(wrappedValue: manager.timerState)
+    }
     
     var body: some View {
+        let totalDuration = timerState.isLongBreak ? 
+            manager.settings.longBreakDuration : 
+            manager.settings.shortBreakDuration
+        
         VStack(spacing: 20) {
             // Timer text
-            Text(timeString(from: manager.timeRemaining))
+            Text(timeString(from: timerState.timeRemaining))
                 .font(.system(size: 52, weight: .medium, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .animation(.snappy, value: manager.timeRemaining)
+                .animation(.snappy, value: timerState.timeRemaining)
             
             // Progress bar
             GeometryReader { geometry in
@@ -85,14 +94,20 @@ private struct TimerBar: View {
                     Capsule()
                         .fill(Color.primary.opacity(0.3))
                         .frame(
-                            width: geometry.size.width * CGFloat(manager.timeRemaining) / 20.0,
+                            width: geometry.size.width * CGFloat(timerState.timeRemaining) / CGFloat(totalDuration),
                             height: 4
                         )
                 }
             }
             .frame(width: 200, height: 4)
-            .animation(.smooth, value: manager.timeRemaining)
+            .animation(.smooth, value: timerState.timeRemaining)
         }
+    }
+    
+    private func timeString(from seconds: Int) -> String {
+        let minutes = seconds / 60
+        let remainingSeconds = seconds % 60
+        return String(format: "%d:%02d", minutes, remainingSeconds)
     }
 }
 
