@@ -199,6 +199,7 @@ class RestModeManager: ObservableObject {
                     } else {
                         self.completedBreaks += 1
                     }
+                    SoundManager.shared.playSound(.complete)
                     self.skipBreak()
                 }
             }
@@ -275,6 +276,9 @@ class RestModeManager: ObservableObject {
             
             // Update state
             DispatchQueue.main.async {
+                if self.isBreakActive {
+                    SoundManager.shared.playSound(.dismiss)
+                }
                 self.isBreakActive = false
                 self.timerState.updateNextBreak(to: Date().addingTimeInterval(TimeInterval(minutes * 60)))
                 self.startWorkTimer()
@@ -285,6 +289,7 @@ class RestModeManager: ObservableObject {
     
     func skipBreak() {
         print("RestModeManager: Skipping break")
+        SoundManager.shared.playSound(.dismiss)
         postponeBreak(minutes: settings.workModeDuration)
     }
     

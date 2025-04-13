@@ -45,6 +45,7 @@ struct MenuItem: View {
 struct MenuBarView: View {
     @EnvironmentObject var manager: RestModeManager
     @EnvironmentObject var settings: SettingsManager
+    @StateObject private var settingsWindowManager = SettingsWindowManager()
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -80,7 +81,7 @@ struct MenuBarView: View {
             Divider()
             
             MenuItem(title: "Settings...", shortcut: "⌘,") {
-                SettingsWindowManager().showSettingsWindow()
+                settingsWindowManager.showSettingsWindow()
             }
             .keyboardShortcut(",", modifiers: .command)
             
