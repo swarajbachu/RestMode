@@ -117,14 +117,14 @@ struct SettingsView: View {
                                     selectedTab = .restMode
                                 }
                                 
-                                SidebarItemView(
-                                    title: Tabs.wellnessReminders.title,
-                                    icon: Tabs.wellnessReminders.icon,
-                                    gradient: Tabs.wellnessReminders.gradient,
-                                    isSelected: selectedTab == .wellnessReminders
-                                ) {
-                                    selectedTab = .wellnessReminders
-                                }
+                                // SidebarItemView(
+                                //     title: Tabs.wellnessReminders.title,
+                                //     icon: Tabs.wellnessReminders.icon,
+                                //     gradient: Tabs.wellnessReminders.gradient,
+                                //     isSelected: selectedTab == .wellnessReminders
+                                // ) {
+                                //     selectedTab = .wellnessReminders
+                                // }
                             }
                         }
                         
@@ -282,13 +282,13 @@ struct GeneralSettingsView: View {
                                 .toggleStyle(.switch)
                         }
                         
-                        Divider()
-                       HStack {
-                        Text("Automatically check for updates")
-                        Spacer()
-                        Toggle("", isOn: $settings.autoCheckUpdates)
-                            .toggleStyle(.switch)
-                       }
+                    //     Divider()
+                    //    HStack {
+                    //     Text("Automatically check for updates")
+                    //     Spacer()
+                    //     Toggle("", isOn: $settings.autoCheckUpdates)
+                    //         .toggleStyle(.switch)
+                    //    }
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 16)
@@ -367,84 +367,84 @@ struct WorkModeSettingsView: View {
                         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
                 }
                 
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Enable work schedule")
-                            Spacer()
-                            Toggle("", isOn: $settings.enableWorkSchedule)
-                                .toggleStyle(.switch)
-                        }
+                // GroupBox {
+                //     VStack(alignment: .leading, spacing: 12) {
+                //         HStack {
+                //             Text("Enable work schedule")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.enableWorkSchedule)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        Text("When enabled, ReduceTime will only show breaks during the set schedule")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                } label: {
-                    Label("Work schedule", systemImage: "calendar")
-                        .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
-                }
+                //         Text("When enabled, ReduceTime will only show breaks during the set schedule")
+                //             .font(.caption)
+                //             .foregroundStyle(.secondary)
+                //     }
+                //     .padding(.vertical, 12)
+                //     .padding(.horizontal, 16)
+                // } label: {
+                //     Label("Work schedule", systemImage: "calendar")
+                //         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
+                // }
                 
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("When you are inactive, ReduceTime can automatically pause and/or reset the timers")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                // GroupBox {
+                //     VStack(alignment: .leading, spacing: 12) {
+                //         Text("When you are inactive, ReduceTime can automatically pause and/or reset the timers")
+                //             .font(.caption)
+                //             .foregroundStyle(.secondary)
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Pause after")
-                            Spacer()
-                            Toggle("", isOn: $settings.pauseOnIdle)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Pause after")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.pauseOnIdle)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        if settings.pauseOnIdle {
-                            HStack {
-                                Picker("Pause duration", selection: $settings.pauseAfterMinutes) {
-                                    ForEach([1, 2, 5, 10], id: \.self) { minutes in
-                                        Text("\(minutes) minute\(minutes == 1 ? "" : "s")").tag(minutes)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 120)
-                                Text("of inactivity")
-                            }
-                        }
+                //         if settings.pauseOnIdle {
+                //             HStack {
+                //                 Picker("Pause duration", selection: $settings.pauseAfterMinutes) {
+                //                     ForEach([1, 2, 5, 10], id: \.self) { minutes in
+                //                         Text("\(minutes) minute\(minutes == 1 ? "" : "s")").tag(minutes)
+                //                     }
+                //                 }
+                //                 .labelsHidden()
+                //                 .frame(width: 120)
+                //                 Text("of inactivity")
+                //             }
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Reset all timers after")
-                            Spacer()
-                            Toggle("", isOn: $settings.resetOnIdle)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Reset all timers after")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.resetOnIdle)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        if settings.resetOnIdle {
-                            HStack {
-                                Picker("Reset duration", selection: $settings.resetAfterMinutes) {
-                                    ForEach([5, 10, 15, 30], id: \.self) { minutes in
-                                        Text("\(minutes) minutes").tag(minutes)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 120)
-                                Text("of inactivity")
-                            }
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                } label: {
-                    Label("Idle time handling", systemImage: "zzz")
-                        .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
-                }
+                //         if settings.resetOnIdle {
+                //             HStack {
+                //                 Picker("Reset duration", selection: $settings.resetAfterMinutes) {
+                //                     ForEach([5, 10, 15, 30], id: \.self) { minutes in
+                //                         Text("\(minutes) minutes").tag(minutes)
+                //                     }
+                //                 }
+                //                 .labelsHidden()
+                //                 .frame(width: 120)
+                //                 Text("of inactivity")
+                //             }
+                //         }
+                //     }
+                //     .padding(.vertical, 12)
+                //     .padding(.horizontal, 16)
+                // } label: {
+                //     Label("Idle time handling", systemImage: "zzz")
+                //         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
+                // }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
@@ -526,78 +526,78 @@ struct RestModeSettingsView: View {
                         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
                 }
                 
-                GroupBox {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Wait until I finish typing before showing a break")
-                            Spacer()
-                            Toggle("", isOn: $settings.waitForTyping)
-                                .toggleStyle(.switch)
-                        }
+                // GroupBox {
+                //     VStack(alignment: .leading, spacing: 12) {
+                //         HStack {
+                //             Text("Wait until I finish typing before showing a break")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.waitForTyping)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Hide the Skip button everywhere")
-                            Spacer()
-                            Toggle("", isOn: $settings.hideSkipButton)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Hide the Skip button everywhere")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.hideSkipButton)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Prevent skipping a break for a few seconds after it starts")
-                            Spacer()
-                            Toggle("", isOn: $settings.preventSkipping)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Prevent skipping a break for a few seconds after it starts")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.preventSkipping)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Allow ending the break early if significant time has passed")
-                            Spacer()
-                            Toggle("", isOn: $settings.allowEarlyEnd)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Allow ending the break early if significant time has passed")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.allowEarlyEnd)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Automatically lock the screen when a break starts")
-                            Spacer()
-                            Toggle("", isOn: $settings.autoLockScreen)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Automatically lock the screen when a break starts")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.autoLockScreen)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        Divider()
+                //         Divider()
                         
-                        HStack {
-                            Text("Show a small countdown before a break starts")
-                            Spacer()
-                            Toggle("", isOn: $settings.showCountdown)
-                                .toggleStyle(.switch)
-                        }
+                //         HStack {
+                //             Text("Show a small countdown before a break starts")
+                //             Spacer()
+                //             Toggle("", isOn: $settings.showCountdown)
+                //                 .toggleStyle(.switch)
+                //         }
                         
-                        if settings.showCountdown {
-                            HStack {
-                                Picker("Countdown duration", selection: $settings.countdownDuration) {
-                                    ForEach([3, 5, 10], id: \.self) { seconds in
-                                        Text("\(seconds) seconds").tag(seconds)
-                                    }
-                                }
-                                .labelsHidden()
-                                .frame(width: 120)
-                            }
-                        }
-                    }
-                    .padding(.vertical, 12)
-                    .padding(.horizontal, 16)
-                } label: {
-                    Label("Behavior", systemImage: "gearshape")
-                        .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
-                }
+                //         if settings.showCountdown {
+                //             HStack {
+                //                 Picker("Countdown duration", selection: $settings.countdownDuration) {
+                //                     ForEach([3, 5, 10], id: \.self) { seconds in
+                //                         Text("\(seconds) seconds").tag(seconds)
+                //                     }
+                //                 }
+                //                 .labelsHidden()
+                //                 .frame(width: 120)
+                //             }
+                //         }
+                //     }
+                //     .padding(.vertical, 12)
+                //     .padding(.horizontal, 16)
+                // } label: {
+                //     Label("Behavior", systemImage: "gearshape")
+                //         .font(.headline).padding(.horizontal,-6).padding(.vertical,5)
+                // }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(20)
@@ -650,7 +650,7 @@ struct AboutView: View {
             
             Text("ReduceTime")
                 .font(.title)
-            Text("Version 0.1")
+            Text("Version 1.01")
                 .foregroundStyle(.secondary)
         }
     }

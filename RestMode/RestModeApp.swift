@@ -79,8 +79,8 @@ struct RestModeApp: App {
                 .environmentObject(SettingsManager.shared)
         }
         
-        .onChange(of: manager.isBreakActive) { oldValue, newValue in
-            if newValue {
+        .onChange(of: manager.isBreakActive) { isActive in
+            if isActive {
                 overlayCoordinator.showOverlay(with: BreakOverlayContainerView()
                     .environmentObject(manager)
                     .environmentObject(SettingsManager.shared))

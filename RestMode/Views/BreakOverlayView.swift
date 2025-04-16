@@ -25,7 +25,7 @@ struct BreakOverlayContainerView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.clear)
         // Animate the whole container based on manager.isBreakActive change
-        .onChange(of: manager.isBreakActive) { _, isActive in
+        .onChange(of: manager.isBreakActive) { isActive in
             withAnimation(.easeOut(duration: 0.35)) {
                 isPresented = isActive
             }
